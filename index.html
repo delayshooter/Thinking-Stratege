@@ -397,41 +397,41 @@
 
   /* IB 탐구 정보 표 */
   .ib-info-box{
-    border:2px solid var(--bongam-green);
-    border-radius:14px;
+    border:1.5px solid var(--bongam-green);
+    border-radius:10px;
     background:#fff;
     padding:0;
-    margin-bottom:22px;
+    margin-bottom:14px;
     overflow:hidden;
   }
   .ib-info-header{
     background:var(--bongam-green);color:#fff;
-    padding:10px 16px;
-    font-family:'Jua',sans-serif;font-size:16px;
+    padding:6px 14px;
+    font-family:'Jua',sans-serif;font-size:14px;
     display:flex;align-items:center;gap:8px;
   }
   .ib-info-header::before{
     content:'IB';
     background:#fff;color:var(--bongam-green-dark);
-    padding:2px 10px;border-radius:999px;
-    font-size:13px;font-weight:700;
+    padding:1px 8px;border-radius:999px;
+    font-size:11px;font-weight:700;
   }
   .ib-info-table{
     display:grid;
-    grid-template-columns:130px 1fr 130px 1fr;
+    grid-template-columns:100px 1fr 100px 1fr;
     gap:0;
   }
   .ib-info-table .ib-label{
     background:var(--paper-2);
-    padding:12px 14px;
-    font-weight:700;font-size:14.5px;
+    padding:6px 10px;
+    font-weight:700;font-size:12.5px;
     color:var(--bongam-green-dark);
     display:flex;align-items:center;
     border-top:1px solid #e8e3d8;
     border-right:1px solid #e8e3d8;
   }
   .ib-info-table .ib-cell{
-    padding:8px 10px;
+    padding:4px 8px;
     border-top:1px solid #e8e3d8;
     border-right:1px solid #e8e3d8;
     display:flex;align-items:center;
@@ -439,9 +439,9 @@
   .ib-info-table .ib-cell:last-child{border-right:none}
   .ib-info-table .ib-full{grid-column:2 / -1}
   .ib-info-table input{
-    border:none;padding:8px 10px;
-    font-size:15px;min-height:40px;
-    border-radius:8px;
+    border:none;padding:5px 8px;
+    font-size:13px;min-height:28px;
+    border-radius:6px;
     background:#fafaf7;
   }
   .ib-info-table input:focus{
@@ -2620,54 +2620,84 @@ async function generatePDF(){
     });
   };
 
+  // A4 비율로 sheet 너비 고정 (210mm 기준, 96dpi → 794px)
+  const A4_PX_WIDTH = 794;
+  const prevWidth = sheetEl.style.width;
+  const prevMaxWidth = sheetEl.style.maxWidth;
+  sheetEl.style.width = A4_PX_WIDTH + 'px';
+  sheetEl.style.maxWidth = A4_PX_WIDTH + 'px';
+
+  // textarea 높이 자동 확장 (내용 잘림 방지)
+  sheetEl.querySelectorAll('textarea').forEach(ta => {
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+  });
+
+  const restoreWidth = () => {
+    sheetEl.style.width = prevWidth;
+    sheetEl.style.maxWidth = prevMaxWidth;
+  };
+
   try {
     const canvas = await html2canvas(sheetEl, {
       scale: 2,
       useCORS: true,
       backgroundColor: '#fbf7ef',
-      windowWidth: sheetEl.scrollWidth,
+      windowWidth: A4_PX_WIDTH,
       windowHeight: sheetEl.scrollHeight,
       scrollX: 0,
-      scrollY: -window.scrollY,
+      scrollY: 0,
       onclone: (clonedDoc) => {
-        clonedDoc.querySelectorAll('textarea').forEach(ta => { ta.textContent = ta.value; });
+        clonedDoc.querySelectorAll('textarea').forEach(ta => {
+          ta.textContent = ta.value;
+          ta.style.height = 'auto';
+          ta.style.height = ta.scrollHeight + 'px';
+        });
         clonedDoc.querySelectorAll('input').forEach(inp => { inp.setAttribute('value', inp.value); });
         const clonedSheet = clonedDoc.getElementById('sheet');
         if(clonedSheet){
           clonedSheet.style.boxShadow = 'none';
           clonedSheet.style.border = '2px solid #1a2238';
+          clonedSheet.style.width = A4_PX_WIDTH + 'px';
+          clonedSheet.style.maxWidth = A4_PX_WIDTH + 'px';
         }
+        // sheet-actions 숨기기
+        clonedDoc.querySelectorAll('.sheet-actions,.collab-panel').forEach(el => el.style.display='none');
       }
     });
 
     restore();
+    restoreWidth();
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
+    const pageW = pdf.internal.pageSize.getWidth();   // 210mm
+    const pageH = pdf.internal.pageSize.getHeight();  // 297mm
     const margin = 10;
-    const imgW = pageW - margin*2;
-    const imgH = canvas.height * imgW / canvas.width;
-    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    const imgW = pageW - margin * 2;                  // 190mm
+    const imgH = canvas.height * imgW / canvas.width; // 실제 비율 높이
+    const imgData = canvas.toDataURL('image/jpeg', 0.93);
 
-    if(imgH <= pageH - margin*2){
+    if(imgH <= pageH - margin * 2){
+      // 한 페이지에 들어오는 경우
       pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
     } else {
-      const pageContentH = pageH - margin*2;
+      // 여러 페이지: 페이지 경계에서 자연스럽게 나눔
+      const pageContentH = pageH - margin * 2;
       const pxPerMm = canvas.width / imgW;
       const sliceHpx = pageContentH * pxPerMm;
       let srcY = 0, pageIdx = 0;
       while(srcY < canvas.height){
         const curSliceH = Math.min(sliceHpx, canvas.height - srcY);
         const tmp = document.createElement('canvas');
-        tmp.width = canvas.width; tmp.height = curSliceH;
+        tmp.width = canvas.width;
+        tmp.height = Math.ceil(sliceHpx); // 항상 A4 높이로 패딩
         const ctx = tmp.getContext('2d');
         ctx.fillStyle = '#fbf7ef';
         ctx.fillRect(0, 0, tmp.width, tmp.height);
         ctx.drawImage(canvas, 0, srcY, canvas.width, curSliceH, 0, 0, canvas.width, curSliceH);
-        const sliceData = tmp.toDataURL('image/jpeg', 0.92);
-        const sliceHmm = curSliceH / pxPerMm;
+        const sliceData = tmp.toDataURL('image/jpeg', 0.93);
+        const sliceHmm = pageContentH; // 항상 A4 높이
         if(pageIdx > 0) pdf.addPage();
         pdf.addImage(sliceData, 'JPEG', margin, margin, imgW, sliceHmm);
         srcY += curSliceH; pageIdx++;
