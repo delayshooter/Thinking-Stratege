@@ -2584,192 +2584,184 @@ function closeIfOverlay(e){
 // ===== PDF DOWNLOAD =====
 // ===== PDF 생성 (Blob 반환, 공통 사용) =====
 // 반환: { blob, filename, base64 } 또는 null(실패)
+// ── PDF용 영역 캡처 헬퍼 ──
+async function captureEl(el, A4_PX_WIDTH){
+  return html2canvas(el, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#fbf7ef',
+    windowWidth: A4_PX_WIDTH,
+    windowHeight: el.scrollHeight,
+    scrollX: 0, scrollY: 0,
+    onclone: (clonedDoc) => {
+      clonedDoc.querySelectorAll('textarea').forEach(ta => {
+        ta.textContent = ta.value;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      });
+      clonedDoc.querySelectorAll('input').forEach(inp => inp.setAttribute('value', inp.value));
+      // sheet-actions, collabPanel 숨기기
+      clonedDoc.querySelectorAll('.sheet-actions, #collabPanel').forEach(el => el.style.display='none');
+      // 캡처 대상 스타일 정리
+      const target = clonedDoc.getElementById(el.id) || clonedDoc.querySelector('.'+el.className.split(' ')[0]);
+      if(target){
+        target.style.boxShadow = 'none';
+        target.style.width = A4_PX_WIDTH + 'px';
+        target.style.maxWidth = A4_PX_WIDTH + 'px';
+      }
+    }
+  });
+}
+
+// ── canvas → PDF 페이지 추가 (내용 맞게 여러장) ──
+function addCanvasToPdf(pdf, canvas, margin, imgW, pageContentH){
+  const pxPerMm = canvas.width / imgW;
+  const pageHpx = pageContentH * pxPerMm;
+  const imgH = canvas.height * imgW / canvas.width;
+
+  if(imgH <= pageContentH){
+    const data = canvas.toDataURL('image/png');
+    pdf.addImage(data, 'PNG', margin, margin, imgW, imgH);
+  } else {
+    let srcY = 0;
+    while(srcY < canvas.height){
+      const sliceH = Math.min(pageHpx, canvas.height - srcY);
+      const tmp = document.createElement('canvas');
+      tmp.width  = canvas.width;
+      tmp.height = Math.ceil(pageHpx);
+      const ctx = tmp.getContext('2d');
+      ctx.fillStyle = '#fbf7ef';
+      ctx.fillRect(0, 0, tmp.width, tmp.height);
+      ctx.drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      const data = tmp.toDataURL('image/png');
+      const hMm = Math.min(sliceH / pxPerMm, pageContentH);
+      if(srcY > 0) pdf.addPage();
+      pdf.addImage(data, 'PNG', margin, margin, imgW, hMm);
+      srcY += sliceH;
+    }
+  }
+}
+
 async function generatePDF(){
   if(typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined'){
     throw new Error('PDF 라이브러리를 불러오지 못했어요.');
   }
-
   const sheetEl = document.getElementById('sheet');
   if(!sheetEl) throw new Error('저장할 내용을 찾을 수 없어요.');
 
-  // ── 준비: 숨길 요소 처리 ──
-  const actions = sheetEl.querySelector('.sheet-actions');
+  // ── 숨길 요소 ──
+  const actions     = sheetEl.querySelector('.sheet-actions');
   const collabPanel = sheetEl.querySelector('#collabPanel');
-  const prevActionsDisplay = actions ? actions.style.display : '';
-  const prevCollabDisplay = collabPanel ? collabPanel.style.display : '';
-  if(actions) actions.style.display = 'none';
+  if(actions)     actions.style.display = 'none';
   if(collabPanel) collabPanel.style.display = 'none';
 
   // ── textarea 높이 자동 확장 ──
   const textareas = Array.from(sheetEl.querySelectorAll('textarea'));
-  const originalStyles = textareas.map(ta => ({
-    el: ta, height: ta.style.height,
-    minHeight: ta.style.minHeight, overflow: ta.style.overflow,
-  }));
-  textareas.forEach(ta => {
-    ta.style.overflow = 'hidden';
-    ta.style.height = 'auto';
-    ta.style.height = (ta.scrollHeight + 4) + 'px';
-  });
+  const origStyles = textareas.map(ta => ({ el:ta, h:ta.style.height, mh:ta.style.minHeight, ov:ta.style.overflow }));
+  textareas.forEach(ta => { ta.style.overflow='hidden'; ta.style.height='auto'; ta.style.height=(ta.scrollHeight+4)+'px'; });
+
+  // ── A4 너비 고정 ──
+  const A4W = 794;
+  const prevW = sheetEl.style.width, prevMW = sheetEl.style.maxWidth;
+  sheetEl.style.width = A4W + 'px';
+  sheetEl.style.maxWidth = A4W + 'px';
 
   const restore = () => {
-    if(actions) actions.style.display = prevActionsDisplay;
-    if(collabPanel) collabPanel.style.display = prevCollabDisplay;
-    originalStyles.forEach(s => {
-      s.el.style.height = s.height;
-      s.el.style.minHeight = s.minHeight;
-      s.el.style.overflow = s.overflow;
-    });
-    sheetEl.style.width = prevWidth;
-    sheetEl.style.maxWidth = prevMaxWidth;
-    sheetEl.style.position = prevPosition;
-    sheetEl.style.left = prevLeft;
+    if(actions)     actions.style.display = '';
+    if(collabPanel) collabPanel.style.display = 'none';
+    origStyles.forEach(s => { s.el.style.height=s.h; s.el.style.minHeight=s.mh; s.el.style.overflow=s.ov; });
+    sheetEl.style.width = prevW;
+    sheetEl.style.maxWidth = prevMW;
   };
 
-  // ── A4 너비로 고정 + 화면 밖으로 배치(레이아웃 깨지지 않게) ──
-  const A4_PX_WIDTH = 794;
-  const prevWidth    = sheetEl.style.width;
-  const prevMaxWidth = sheetEl.style.maxWidth;
-  const prevPosition = sheetEl.style.position;
-  const prevLeft     = sheetEl.style.left;
-  sheetEl.style.width    = A4_PX_WIDTH + 'px';
-  sheetEl.style.maxWidth = A4_PX_WIDTH + 'px';
-
   try {
-    const canvas = await html2canvas(sheetEl, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#fbf7ef',
-      windowWidth: A4_PX_WIDTH,
-      windowHeight: sheetEl.scrollHeight,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (clonedDoc) => {
-        clonedDoc.querySelectorAll('textarea').forEach(ta => {
-          ta.textContent = ta.value;
-          ta.style.height = 'auto';
-          ta.style.height = ta.scrollHeight + 'px';
-        });
-        clonedDoc.querySelectorAll('input').forEach(inp => { inp.setAttribute('value', inp.value); });
-        const clonedSheet = clonedDoc.getElementById('sheet');
-        if(clonedSheet){
-          clonedSheet.style.boxShadow = 'none';
-          clonedSheet.style.border = '2px solid #1a2238';
-          clonedSheet.style.width = A4_PX_WIDTH + 'px';
-          clonedSheet.style.maxWidth = A4_PX_WIDTH + 'px';
-        }
-        // sheet-actions 숨기기
-        clonedDoc.querySelectorAll('.sheet-actions,.collab-panel').forEach(el => el.style.display='none');
-      }
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const imgW = pageW - margin * 2;
+    const pageContentH = pageH - margin * 2;
+
+    // ── 1페이지: 헤더 + 탐구정보 + 가이드 ──
+    const page1El = document.createElement('div');
+    page1El.style.cssText = `width:${A4W}px;background:#fbf7ef;padding:20px;box-sizing:border-box;`;
+    const headEl  = sheetEl.querySelector('.sheet-head');
+    const ibEl    = sheetEl.querySelector('.ib-info-box');
+    const guideEl = sheetEl.querySelector('.guide');
+    if(headEl)  page1El.appendChild(headEl.cloneNode(true));
+    if(ibEl)    page1El.appendChild(ibEl.cloneNode(true));
+    if(guideEl) page1El.appendChild(guideEl.cloneNode(true));
+
+    // input 값 복원 (cloneNode는 value를 attribute로 안 복사)
+    const origInputs = [...(headEl||{querySelectorAll:()=>[]}).querySelectorAll('input'),
+                        ...(ibEl||{querySelectorAll:()=>[]}).querySelectorAll('input'),
+                        ...(guideEl||{querySelectorAll:()=>[]}).querySelectorAll('input')];
+    page1El.querySelectorAll('input').forEach((inp,i) => { if(origInputs[i]) inp.value = origInputs[i].value; inp.setAttribute('value', inp.value); });
+
+    // sheet-actions 숨기기
+    page1El.querySelectorAll('.sheet-actions, #collabPanel').forEach(el => el.style.display='none');
+    document.body.appendChild(page1El);
+    const canvas1 = await html2canvas(page1El, {
+      scale:2, useCORS:true, backgroundColor:'#fbf7ef',
+      windowWidth:A4W, windowHeight:page1El.scrollHeight,
+      scrollX:0, scrollY:0
     });
+    document.body.removeChild(page1El);
+
+    // 1페이지 추가
+    addCanvasToPdf(pdf, canvas1, margin, imgW, pageContentH);
+
+    // ── 2페이지~: 헤더+탐구정보+가이드 제외한 나머지 입력 영역 ──
+    const page2El = document.createElement('div');
+    page2El.style.cssText = `width:${A4W}px;background:#fbf7ef;padding:20px;box-sizing:border-box;`;
+
+    // sheet 자식 중 1페이지 요소 제외한 나머지 복사
+    Array.from(sheetEl.children).forEach(child => {
+      if(child.classList.contains('sheet-head')) return;
+      if(child.classList.contains('ib-info-box')) return;
+      if(child.classList.contains('guide')) return;
+      if(child.classList.contains('sheet-actions')) return;
+      if(child.id === 'collabPanel') return;
+      const clone = child.cloneNode(true);
+      // textarea 값 복원
+      child.querySelectorAll('textarea').forEach((ta, i) => {
+        const cloneTa = clone.querySelectorAll('textarea')[i];
+        if(cloneTa){ cloneTa.textContent = ta.value; cloneTa.style.height='auto'; cloneTa.style.height=(ta.scrollHeight+4)+'px'; }
+      });
+      child.querySelectorAll('input').forEach((inp, i) => {
+        const cloneInp = clone.querySelectorAll('input')[i];
+        if(cloneInp){ cloneInp.value = inp.value; cloneInp.setAttribute('value', inp.value); }
+      });
+      page2El.appendChild(clone);
+    });
+
+    if(page2El.children.length > 0){
+      document.body.appendChild(page2El);
+      const canvas2 = await html2canvas(page2El, {
+        scale:2, useCORS:true, backgroundColor:'#fbf7ef',
+        windowWidth:A4W, windowHeight:page2El.scrollHeight,
+        scrollX:0, scrollY:0
+      });
+      document.body.removeChild(page2El);
+      pdf.addPage();
+      addCanvasToPdf(pdf, canvas2, margin, imgW, pageContentH);
+    }
 
     restore();
 
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
-    const pageW = pdf.internal.pageSize.getWidth();   // 210mm
-    const pageH = pdf.internal.pageSize.getHeight();  // 297mm
-    const margin = 10;
-    const imgW = pageW - margin * 2;                  // 190mm
-    const imgH = canvas.height * imgW / canvas.width; // 실제 비율 높이
-    const imgData = canvas.toDataURL('image/png');
-
-    const pageContentH = pageH - margin * 2;  // 277mm
-    const pxPerMm = canvas.width / imgW;
-    const pageHpx = pageContentH * pxPerMm;
-
-    if(imgH <= pageContentH){
-      pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
-    } else {
-      // ── 요소 경계 기반 페이지 분할 ──
-      // canvas 좌표계에서 각 블록 요소의 offsetTop 수집
-      const scale = 2;
-      const breakPoints = new Set([0]);
-
-      // sheet 내 직접 자식 수준의 주요 블록들 수집
-      const candidates = sheetEl.querySelectorAll(
-        '.sheet-head, .ib-info-box, .guide, ' +
-        '.mblock, .mcell, ' +
-        'h3, h4, ' +
-        '.prompt-row, .field-wrap, .input-row, ' +
-        '[class*="row"], [class*="block"], [class*="section"], [class*="card"], [class*="box"]'
-      );
-
-      candidates.forEach(el => {
-        let offsetY = 0;
-        let node = el;
-        while(node && node !== sheetEl){
-          offsetY += node.offsetTop;
-          node = node.offsetParent;
-          if(node === document.body || !node) break;
-        }
-        // el이 sheetEl 안에 있을 때만 사용
-        if(offsetY > 0 && offsetY < sheetEl.scrollHeight){
-          breakPoints.add(Math.floor(offsetY * scale));
-        }
-      });
-
-      const sortedBreaks = Array.from(breakPoints).sort((a,b)=>a-b);
-
-      // 페이지 컷 결정: pageHpx 마다 가장 가까운 요소 경계 찾기
-      const pageCuts = [0];
-      let pageStart = 0;
-      while(pageStart < canvas.height - 20){
-        const ideal = pageStart + pageHpx;
-        if(ideal >= canvas.height){ break; }
-        // ideal 지점 ±15% 범위 안에서 가장 가까운 경계 찾기
-        const lo = ideal - pageHpx * 0.20;
-        const hi = ideal + pageHpx * 0.05;
-        let best = ideal;
-        let bestDist = Infinity;
-        for(const bp of sortedBreaks){
-          if(bp > lo && bp < hi){
-            const d = Math.abs(bp - ideal);
-            if(d < bestDist){ bestDist = d; best = bp; }
-          }
-        }
-        // 적절한 경계를 못 찾으면 ideal 그대로
-        pageCuts.push(Math.round(best));
-        pageStart = Math.round(best);
-      }
-      pageCuts.push(canvas.height);
-
-      for(let i = 0; i < pageCuts.length - 1; i++){
-        const srcY = pageCuts[i];
-        const srcH = pageCuts[i+1] - srcY;
-        if(srcH <= 0) continue;
-
-        const tmp = document.createElement('canvas');
-        tmp.width  = canvas.width;
-        tmp.height = Math.ceil(pageHpx);
-        const ctx = tmp.getContext('2d');
-        ctx.fillStyle = '#fbf7ef';
-        ctx.fillRect(0, 0, tmp.width, tmp.height);
-        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
-
-        const sliceData = tmp.toDataURL('image/png'); // PNG → 흐림 없음
-        const sliceHmm  = Math.min(srcH / pxPerMm, pageContentH);
-        if(i > 0) pdf.addPage();
-        pdf.addImage(sliceData, 'PNG', margin, margin, imgW, sliceHmm);
-      }
-    }
-
-    // 파일명
+    // ── 파일명 ──
     const now = new Date();
     const pad = n => String(n).padStart(2,'0');
     const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-    const who = (studentInfo.studentName && studentInfo.className)
-      ? `${studentInfo.className}_${studentInfo.studentName}_`
-      : '';
+    const who = (studentInfo.studentName && studentInfo.className) ? `${studentInfo.className}_${studentInfo.studentName}_` : '';
     const filename = safeFilename(`${who}${currentToolTitle}_${stamp}`) + '.pdf';
 
-    // Blob + Base64
-    const blob = pdf.output('blob');
-    const dataUri = pdf.output('datauristring'); // 'data:application/pdf;base64,xxxx'
-
+    const blob    = pdf.output('blob');
+    const dataUri = pdf.output('datauristring');
     return { blob, filename, dataUri };
 
-  } catch(err) {
+  } catch(err){
     restore();
     throw err;
   }
