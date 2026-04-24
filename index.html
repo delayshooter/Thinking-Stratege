@@ -2678,29 +2678,70 @@ async function generatePDF(){
     const imgH = canvas.height * imgW / canvas.width; // 실제 비율 높이
     const imgData = canvas.toDataURL('image/jpeg', 0.93);
 
-    if(imgH <= pageH - margin * 2){
-      // 한 페이지에 들어오는 경우
+    const pageContentH = pageH - margin * 2;  // 277mm
+
+    if(imgH <= pageContentH){
+      // 한 페이지에 딱 맞는 경우
       pdf.addImage(imgData, 'JPEG', margin, margin, imgW, imgH);
     } else {
-      // 여러 페이지: 페이지 경계에서 자연스럽게 나눔
-      const pageContentH = pageH - margin * 2;
-      const pxPerMm = canvas.width / imgW;
-      const sliceHpx = pageContentH * pxPerMm;
-      let srcY = 0, pageIdx = 0;
-      while(srcY < canvas.height){
-        const curSliceH = Math.min(sliceHpx, canvas.height - srcY);
+      // 여러 페이지: 요소 경계에서 자르기
+      const pxPerMm = canvas.width / imgW;  // px/mm 비율
+      const pageHpx = pageContentH * pxPerMm; // 한 페이지 높이(px)
+
+      // sheet 내부의 주요 블록 요소들의 Y위치 수집 (페이지 경계 후보)
+      const sheetRect = sheetEl.getBoundingClientRect();
+      const breakCandidates = [0]; // 첫 페이지 시작
+      const blockSelectors = [
+        '.sheet-head','.ib-info-box','.guide',
+        '.mblock','.mcell','.tile-section',
+        'h3','h4','.prompt-label','.row-wrap',
+        '.field-group','.col-wrap','.box-wrap',
+        'table','tr','p','.tip-box',
+        '[class*="section"]','[class*="block"]','[class*="card"]'
+      ];
+      sheetEl.querySelectorAll(blockSelectors.join(',')).forEach(el => {
+        const r = el.getBoundingClientRect();
+        const relTop = (r.top - sheetRect.top) * 2; // scale:2 보정
+        if(relTop > 20) breakCandidates.push(relTop);
+      });
+      breakCandidates.sort((a,b)=>a-b);
+      // 중복 제거 (10px 이내)
+      const breaks = breakCandidates.filter((v,i,arr)=> i===0 || v - arr[i-1] > 10);
+
+      // 페이지별로 적절한 분할점 찾기
+      const pageCuts = [0]; // 각 페이지 시작 Y(px)
+      let pageStart = 0;
+      while(pageStart < canvas.height){
+        const pageEnd = pageStart + pageHpx;
+        if(pageEnd >= canvas.height) break;
+        // pageEnd 직전의 가장 가까운 break 후보 찾기
+        let bestCut = pageEnd;
+        for(let i = breaks.length - 1; i >= 0; i--){
+          if(breaks[i] <= pageEnd && breaks[i] > pageStart + pageHpx * 0.3){
+            bestCut = breaks[i];
+            break;
+          }
+        }
+        pageCuts.push(bestCut);
+        pageStart = bestCut;
+      }
+      pageCuts.push(canvas.height);
+
+      // 각 페이지 렌더링
+      for(let i = 0; i < pageCuts.length - 1; i++){
+        const srcY = pageCuts[i];
+        const srcH = pageCuts[i+1] - srcY;
         const tmp = document.createElement('canvas');
         tmp.width = canvas.width;
-        tmp.height = Math.ceil(sliceHpx); // 항상 A4 높이로 패딩
+        tmp.height = Math.ceil(pageHpx); // A4 높이로 패딩
         const ctx = tmp.getContext('2d');
         ctx.fillStyle = '#fbf7ef';
         ctx.fillRect(0, 0, tmp.width, tmp.height);
-        ctx.drawImage(canvas, 0, srcY, canvas.width, curSliceH, 0, 0, canvas.width, curSliceH);
+        ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
         const sliceData = tmp.toDataURL('image/jpeg', 0.93);
-        const sliceHmm = pageContentH; // 항상 A4 높이
-        if(pageIdx > 0) pdf.addPage();
-        pdf.addImage(sliceData, 'JPEG', margin, margin, imgW, sliceHmm);
-        srcY += curSliceH; pageIdx++;
+        const sliceHmm = srcH / pxPerMm; // 실제 내용 높이(mm)
+        if(i > 0) pdf.addPage();
+        pdf.addImage(sliceData, 'JPEG', margin, margin, imgW, Math.min(sliceHmm, pageContentH));
       }
     }
 
