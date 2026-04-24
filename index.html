@@ -3123,7 +3123,7 @@ function toolHead(title, en, desc, guide){
       <div class="sheet-actions">
         <button class="btn" onclick="openShare()">📤 공유하기</button>
         <button class="btn" onclick="downloadPDF()">📄 PDF로 저장</button>
-        <button class="btn" id="btnCollab" onclick="openCollabPanel('${toolId||currentToolId}')">👥 공동작업</button>
+        <button class="btn" id="btnCollab" onclick="openCollabPanel(currentToolId)">👥 공동작업</button>
         <button class="btn" onclick="openReset()">🧹 초기화</button>
         <button class="btn close" onclick="closeTool()">✕ 닫기</button>
       </div>
