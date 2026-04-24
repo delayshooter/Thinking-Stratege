@@ -2664,7 +2664,6 @@ async function generatePDF(){
     });
 
     restore();
-    restoreWidth();
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait' });
