@@ -1051,6 +1051,113 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   .collab-members{font-size:12.5px;opacity:.85;}
 
+
+  /* ══════════════ 포트폴리오 ══════════════ */
+  .portfolio-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    background:rgba(244,196,48,.15);border:1.5px solid rgba(244,196,48,.5);
+    color:var(--bongam-green-dark);font-size:13px;font-weight:700;
+    padding:8px 14px;border-radius:999px;cursor:pointer;
+    font-family:'Jua',sans-serif;transition:all .2s;
+  }
+  .portfolio-btn:hover{background:rgba(244,196,48,.3);border-color:var(--bongam-yellow);}
+
+  .portfolio-overlay{
+    display:none;position:fixed;inset:0;z-index:300;
+    background:var(--paper);overflow-y:auto;
+  }
+  .portfolio-overlay.on{display:block;}
+  .portfolio-header{
+    background:linear-gradient(135deg,var(--bongam-green),var(--bongam-green-dark));
+    color:#fff;padding:20px 24px;
+    display:flex;align-items:center;gap:14px;
+    position:sticky;top:0;z-index:10;
+  }
+  .portfolio-header h2{font-family:'Jua',sans-serif;font-size:22px;flex:1;}
+  .portfolio-close{
+    background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:36px;height:36px;border-radius:50%;cursor:pointer;
+    font-size:18px;display:flex;align-items:center;justify-content:center;
+  }
+  .portfolio-close:hover{background:rgba(255,255,255,.35);}
+  .portfolio-body{max-width:900px;margin:0 auto;padding:24px 20px 60px;}
+  .portfolio-user{
+    display:flex;align-items:center;gap:12px;
+    background:#fff;border-radius:14px;padding:16px 20px;
+    margin-bottom:24px;border:1.5px solid var(--border);
+  }
+  .portfolio-avatar{width:44px;height:44px;border-radius:50%;border:2px solid var(--bongam-green);}
+  .portfolio-avatar-ph{
+    width:44px;height:44px;border-radius:50%;
+    background:var(--bongam-green);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;font-weight:700;flex-shrink:0;
+  }
+  .portfolio-user-info{flex:1;}
+  .portfolio-user-name{font-family:'Jua',sans-serif;font-size:17px;color:var(--ink);}
+  .portfolio-user-sub{font-size:13px;color:#888;margin-top:2px;}
+  .portfolio-stats{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;
+  }
+  .p-stat{
+    background:#fff;border-radius:12px;padding:14px 16px;
+    border:1.5px solid var(--border);text-align:center;
+  }
+  .p-stat .val{font-family:'Jua',sans-serif;font-size:28px;color:var(--bongam-green);}
+  .p-stat .lbl{font-size:12px;color:#888;margin-top:2px;}
+  .portfolio-section-title{
+    font-family:'Jua',sans-serif;font-size:16px;color:var(--bongam-green-dark);
+    margin:20px 0 10px;display:flex;align-items:center;gap:8px;
+  }
+  .portfolio-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;
+  }
+  .p-card{
+    background:#fff;border-radius:14px;border:1.5px solid var(--border);
+    padding:16px;cursor:pointer;transition:all .2s;
+    display:flex;flex-direction:column;gap:8px;
+    position:relative;overflow:hidden;
+  }
+  .p-card:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1);border-color:var(--bongam-green-light);}
+  .p-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:4px;
+    background:var(--stage-color,var(--bongam-green));
+  }
+  .p-card-emoji{font-size:28px;line-height:1;}
+  .p-card-title{font-family:'Jua',sans-serif;font-size:14px;color:var(--ink);line-height:1.3;}
+  .p-card-en{font-size:11px;color:#888;}
+  .p-card-date{font-size:11.5px;color:#aaa;margin-top:auto;}
+  .p-card-preview{
+    font-size:12px;color:#666;line-height:1.5;
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    background:var(--paper);border-radius:6px;padding:6px 8px;
+    min-height:36px;
+  }
+  .p-card-actions{display:flex;gap:6px;margin-top:4px;}
+  .p-card-btn{
+    flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--border);
+    background:#fafaf7;font-size:11.5px;cursor:pointer;text-align:center;
+    transition:all .15s;color:var(--ink);
+  }
+  .p-card-btn:hover{background:var(--bongam-green);color:#fff;border-color:var(--bongam-green);}
+  .p-empty{
+    text-align:center;padding:60px 20px;color:#aaa;
+    grid-column:1/-1;
+  }
+  .p-empty .icon{font-size:48px;margin-bottom:12px;}
+  .p-filter{
+    display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;
+  }
+  .p-filter-btn{
+    padding:5px 14px;border-radius:999px;border:1.5px solid var(--border);
+    background:#fff;font-size:13px;cursor:pointer;transition:all .15s;color:var(--ink);
+  }
+  .p-filter-btn.active{background:var(--bongam-green);color:#fff;border-color:var(--bongam-green);}
+  @media(max-width:600px){
+    .portfolio-stats{grid-template-columns:repeat(3,1fr);}
+    .portfolio-grid{grid-template-columns:repeat(2,1fr);}
+  }
+
   @media print{
     .mblock textarea, .mcell textarea,
     .mind-node textarea, .bubble-node textarea,
@@ -1231,6 +1338,7 @@
           <div id="hero-meta-2">💾 쓴 내용은 저장하거나 PDF로 받을 수 있어요</div>
         </div>
         <div class="hero-btns">
+          <button class="portfolio-btn" onclick="openPortfolio()">📋 내 포트폴리오</button>
           <div class="student-badge" id="studentBadge" onclick="handleBadgeClick()">
             <svg class="google-icon" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1257,6 +1365,24 @@
 </footer>
 
 <!-- OVERLAY -->
+<!-- ══ 포트폴리오 오버레이 ══ -->
+<div class="portfolio-overlay" id="portfolioOverlay">
+  <div class="portfolio-header">
+    <span style="font-size:24px">📋</span>
+    <h2>내 포트폴리오</h2>
+    <div id="pf-export-btn" style="display:none">
+      <button class="p-card-btn" style="background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4);color:#fff;padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer" onclick="exportAllPDF()">📄 전체 PDF</button>
+    </div>
+    <button class="portfolio-close" onclick="closePortfolio()">✕</button>
+  </div>
+  <div class="portfolio-body">
+    <div class="portfolio-user" id="pfUser"></div>
+    <div class="portfolio-stats" id="pfStats"></div>
+    <div class="p-filter" id="pfFilter"></div>
+    <div class="portfolio-grid" id="pfGrid"></div>
+  </div>
+</div>
+
 <div class="overlay" id="overlay" onclick="closeIfOverlay(event)">
   <div class="sheet" id="sheet"></div>
 </div>
@@ -5808,6 +5934,210 @@ TOOLS.reflect321 = () => {
 };
 
 
+
+// ══════════════════════════════════════════
+// 포트폴리오
+// ══════════════════════════════════════════
+
+// 도구 메타데이터 맵 (id → {ko, en, emoji, stageColor})
+const TOOL_META = {};
+const STAGE_COLORS = [
+  '#4fa361','#f4c430','#e85d4e','#5a9ec4','#9b7bb8',
+  '#34b8a3','#f07c3e','#7c9e3e','#e879a6'
+];
+STAGES.forEach((s,si) => {
+  s.tools.forEach(t => {
+    TOOL_META[t.id] = { ko:t.ko, en:t.en, emoji:s.emoji||'📝', stageKo:s.ko, stageColor:STAGE_COLORS[si%STAGE_COLORS.length] };
+  });
+});
+
+// 포트폴리오 데이터 (Firebase에서 불러온 것 + 로컬 store 합침)
+function getPortfolioData(){
+  const data = {};
+  // 로컬 store에서
+  Object.keys(store).forEach(id => { if(store[id]) data[id] = { ...data[id], local:store[id] }; });
+  // Firebase 캐시 (window._fbCache)
+  if(window._fbCache){
+    Object.keys(window._fbCache).forEach(id => {
+      try {
+        const parsed = typeof window._fbCache[id] === 'string' ? JSON.parse(window._fbCache[id]) : window._fbCache[id];
+        data[id] = { ...data[id], cloud:parsed, savedAt:window._fbCacheSavedAt?.[id] };
+      } catch(e){}
+    });
+  }
+  return data;
+}
+
+// 포트폴리오 열기
+async function openPortfolio(){
+  const overlay = document.getElementById('portfolioOverlay');
+  overlay.classList.add('on');
+  document.body.style.overflow = 'hidden';
+  history.pushState({ portfolio: true }, '', '#portfolio');
+  renderPortfolio();
+
+  // Firebase에서 최신 데이터 불러오기
+  const user = window.getCurrentUser ? window.getCurrentUser() : null;
+  if(user && window.getDatabase && window.dbRef && window.dbGet){
+    try {
+      const snap = await window.dbGet(window.dbRef(window.getDatabase(), `users/${user.uid}/tools`));
+      if(snap.exists()){
+        window._fbCache = {};
+        window._fbCacheSavedAt = {};
+        const tools = snap.val();
+        Object.entries(tools).forEach(([id, entry]) => {
+          window._fbCache[id] = entry.data;
+          window._fbCacheSavedAt[id] = entry.savedAt;
+        });
+        renderPortfolio();
+      }
+    } catch(e){ console.warn('portfolio load error', e); }
+  }
+}
+
+function closePortfolio(){
+  document.getElementById('portfolioOverlay').classList.remove('on');
+  document.body.style.overflow = '';
+  if(location.hash === '#portfolio') history.back();
+}
+
+// popstate에서 포트폴리오도 닫기
+window.addEventListener('popstate', (e) => {
+  if(document.getElementById('portfolioOverlay').classList.contains('on')){
+    document.getElementById('portfolioOverlay').classList.remove('on');
+    document.body.style.overflow = '';
+    return;
+  }
+});
+
+let pfActiveFilter = 'all';
+
+function renderPortfolio(){
+  const user = window.getCurrentUser ? window.getCurrentUser() : null;
+  const data  = getPortfolioData();
+  const ids   = Object.keys(data).filter(id => TOOL_META[id]);
+
+  // 유저 정보
+  const pfUser = document.getElementById('pfUser');
+  if(user){
+    const avatarHtml = user.photoURL
+      ? `<img class="portfolio-avatar" src="${user.photoURL}" referrerpolicy="no-referrer">`
+      : `<div class="portfolio-avatar-ph">${(user.displayName||'?')[0]}</div>`;
+    pfUser.innerHTML = `${avatarHtml}<div class="portfolio-user-info">
+      <div class="portfolio-user-name">${user.displayName||user.email}</div>
+      <div class="portfolio-user-sub">나의 사고전략 기록</div>
+    </div>`;
+  } else {
+    pfUser.innerHTML = `<div class="portfolio-avatar-ph">?</div>
+      <div class="portfolio-user-info">
+        <div class="portfolio-user-name">로그인하면 저장된 기록을 볼 수 있어요</div>
+        <div class="portfolio-user-sub"><button class="p-card-btn" onclick="window.signInWithGoogle&&window.signInWithGoogle()" style="padding:6px 14px">🔐 구글 로그인</button></div>
+      </div>`;
+  }
+
+  // 통계
+  const totalTools = Object.keys(TOOL_META).length;
+  const usedTools  = ids.length;
+  const stages     = [...new Set(ids.map(id=>TOOL_META[id].stageKo))].length;
+  document.getElementById('pfStats').innerHTML = `
+    <div class="p-stat"><div class="val">${usedTools}</div><div class="lbl">사용한 도구</div></div>
+    <div class="p-stat"><div class="val">${totalTools}</div><div class="lbl">전체 도구</div></div>
+    <div class="p-stat"><div class="val">${stages}</div><div class="lbl">탐구 단계</div></div>
+  `;
+
+  // 필터
+  const stageNames = [...new Set(STAGES.map(s=>({ko:s.ko,emoji:s.emoji})).map(s=>JSON.stringify(s)))].map(s=>JSON.parse(s));
+  document.getElementById('pfFilter').innerHTML =
+    `<button class="p-filter-btn ${pfActiveFilter==='all'?'active':''}" onclick="setPfFilter('all')">전체</button>` +
+    stageNames.map(s=>`<button class="p-filter-btn ${pfActiveFilter===s.ko?'active':''}" onclick="setPfFilter('${s.ko}')">${s.emoji} ${s.ko}</button>`).join('');
+
+  // 카드 그리드
+  const filtered = pfActiveFilter === 'all'
+    ? ids
+    : ids.filter(id => TOOL_META[id].stageKo === pfActiveFilter);
+
+  if(ids.length === 0){
+    document.getElementById('pfGrid').innerHTML = `
+      <div class="p-empty">
+        <div class="icon">📭</div>
+        <div>아직 저장된 도구가 없어요</div>
+        <div style="font-size:13px;margin-top:8px;color:#bbb">도구를 사용하고 저장하면 여기에 모여요!</div>
+      </div>`;
+    document.getElementById('pf-export-btn').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('pf-export-btn').style.display = '';
+
+  if(filtered.length === 0){
+    document.getElementById('pfGrid').innerHTML = `<div class="p-empty"><div class="icon">🔍</div><div>이 단계의 저장된 도구가 없어요</div></div>`;
+    return;
+  }
+
+  document.getElementById('pfGrid').innerHTML = filtered.map(id => {
+    const meta = TOOL_META[id];
+    const entry = data[id];
+    const src   = entry.cloud || entry.local || {};
+
+    // 미리보기 텍스트 추출 (첫 번째 문자열 값)
+    let preview = '';
+    for(const v of Object.values(src)){
+      if(typeof v === 'string' && v.trim().length > 3){ preview = v.trim(); break; }
+    }
+
+    const dateStr = entry.savedAt
+      ? new Date(entry.savedAt).toLocaleDateString('ko-KR', {month:'short',day:'numeric'})
+      : (entry.cloud ? '저장됨 ☁' : '임시저장');
+
+    return `<div class="p-card" style="--stage-color:${meta.stageColor}" onclick="openToolFromPortfolio('${id}')">
+      <div class="p-card-emoji">${meta.emoji}</div>
+      <div class="p-card-title">${meta.ko}</div>
+      <div class="p-card-en">${meta.en}</div>
+      ${preview ? `<div class="p-card-preview">${escapeHtml(preview.slice(0,60))}${preview.length>60?'…':''}</div>` : ''}
+      <div class="p-card-date">${dateStr}${entry.cloud?'  ☁':'  💾'}</div>
+      <div class="p-card-actions">
+        <button class="p-card-btn" onclick="event.stopPropagation();openToolFromPortfolio('${id}')">✏ 열기</button>
+        <button class="p-card-btn" onclick="event.stopPropagation();pdfFromPortfolio('${id}')">📄 PDF</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setPfFilter(filter){
+  pfActiveFilter = filter;
+  renderPortfolio();
+}
+
+function openToolFromPortfolio(id){
+  closePortfolio();
+  setTimeout(() => openTool(id), 200);
+}
+
+async function pdfFromPortfolio(id){
+  closePortfolio();
+  setTimeout(async () => {
+    openTool(id);
+    // 도구가 열리고 렌더링될 때까지 잠깐 대기
+    setTimeout(async () => {
+      try {
+        const result = await generatePDF();
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(result.blob);
+        link.download = result.filename;
+        link.click();
+      } catch(e){ toast('PDF 생성 실패: ' + e.message); }
+    }, 800);
+  }, 300);
+}
+
+// Firebase 데이터 불러올 때 캐시 저장 (기존 loadUserData 확장)
+window._fbRestoreHook = (toolId, parsed) => {
+  if(!window._fbCache) window._fbCache = {};
+  window._fbCache[toolId] = JSON.stringify(parsed);
+  // store에도 적용
+  store[toolId] = parsed;
+};
+
 // ── 뒤로가기 버튼으로 도구 닫기 ──
 window.addEventListener('popstate', (e) => {
   if(overlay.classList.contains('on')){
@@ -5850,6 +6180,9 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getDatabase(app);
+window.getDatabase = getDatabase;
+window.dbRef = ref;
+window.dbGet = get;
 const provider = new GoogleAuthProvider();
 
 // ── 전역 상태 ──
