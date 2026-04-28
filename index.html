@@ -353,6 +353,16 @@
     font-size:15.5px;color:#555;max-width:680px;margin-top:10px;line-height:1.65;
   }
   .sheet-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn-portfolio{
+    background:linear-gradient(135deg,var(--bongam-green),var(--bongam-green-dark)) !important;
+    color:#fff !important;border-color:var(--bongam-green-dark) !important;
+    font-weight:700 !important;
+  }
+  .btn-portfolio:hover{filter:brightness(1.1);}
+  .btn-portfolio.saved{
+    background:linear-gradient(135deg,#34a853,#1e7e34) !important;
+    border-color:#1e7e34 !important;
+  }
   .btn{
     border:2px solid var(--bongam-green);padding:11px 18px;
     font-weight:700;font-size:15px;
@@ -2661,6 +2671,57 @@ function updateBadgeUI(user){
 }
 
 
+
+// ── 포트폴리오에 저장 ──
+async function saveToPortfolio(){
+  if(!currentToolId){ toast('도구를 먼저 열어주세요!'); return; }
+  const user = window.getCurrentUser ? window.getCurrentUser() : null;
+  if(!user){
+    toast('⚠️ 먼저 구글 계정으로 로그인해 주세요!');
+    return;
+  }
+
+  const btn = document.getElementById('btnSavePortfolio');
+  if(btn){ btn.textContent = '⏳ 저장 중...'; btn.disabled = true; }
+
+  try {
+    // 현재 도구의 최신 데이터 수집 (각 도구의 save 함수 호출)
+    const data = store[currentToolId] || {};
+    // 추가로 현재 화면의 textarea/input 값도 수집
+    const sheet = document.getElementById('sheet');
+    if(sheet){
+      sheet.querySelectorAll('[data-key]').forEach(el => {
+        if(el.tagName === 'TEXTAREA' || el.tagName === 'INPUT'){
+          data[el.dataset.key] = el.value;
+        }
+      });
+    }
+
+    // Firebase에 저장
+    await window.fbSaveData(currentToolId, data);
+
+    // 포트폴리오 캐시 업데이트
+    if(!window._fbCache) window._fbCache = {};
+    if(!window._fbCacheSavedAt) window._fbCacheSavedAt = {};
+    window._fbCache[currentToolId] = JSON.stringify(data);
+    window._fbCacheSavedAt[currentToolId] = Date.now();
+
+    if(btn){
+      btn.textContent = '✅ 저장됨!';
+      btn.classList.add('saved');
+      setTimeout(()=>{
+        btn.textContent = '📋 포트폴리오에 저장';
+        btn.classList.remove('saved');
+        btn.disabled = false;
+      }, 2000);
+    }
+    toast('📋 포트폴리오에 저장됐어요!');
+  } catch(e){
+    if(btn){ btn.textContent = '📋 포트폴리오에 저장'; btn.disabled = false; }
+    toast('❌ 저장 실패: ' + (e.message || e));
+  }
+}
+
 // ══════════════════════════════════════
 // 공동작업 패널 UI
 // ══════════════════════════════════════
@@ -3442,6 +3503,7 @@ function toolHead(title, en, desc, guide){
         <p class="desc">${desc}</p>
       </div>
       <div class="sheet-actions">
+        <button class="btn btn-portfolio" id="btnSavePortfolio" onclick="saveToPortfolio()">📋 포트폴리오에 저장</button>
         <button class="btn" onclick="openShare()">📤 공유하기</button>
         <button class="btn" onclick="downloadPDF()">📄 PDF로 저장</button>
         <button class="btn" id="btnCollab" onclick="openCollabPanel(currentToolId)">👥 공동작업</button>
