@@ -1791,11 +1791,14 @@ function saveState(key, data){
   showSaved();
   // Firebase 개인 저장
   if(window.fbSaveData) window.fbSaveData(key, data);
-  // 공동작업 방 송신
-  const _cs = window.getCollabState ? window.getCollabState() : {};
-  if(_cs.roomId && _cs.toolId === key && window.fbCollabSend){
-    window.fbCollabSend(data);
-  }
+  // 공동작업 방 송신 (디바운스 적용)
+  if(window._collabSendTimer) clearTimeout(window._collabSendTimer);
+  window._collabSendTimer = setTimeout(() => {
+    const _cs = window.getCollabState ? window.getCollabState() : {};
+    if(_cs.roomId && _cs.toolId === key && window.fbCollabSend){
+      window.fbCollabSend(data);
+    }
+  }, 300);
 }
 function loadState(key, fallback){
   return store[key] ?? fallback;
@@ -6691,9 +6694,17 @@ window.joinCollabRoom = async (roomId, toolId) => {
   collabListener = onValue(dataRef, snap => {
     if(!snap.exists()) return;
     const payload = snap.val();
-    if(payload.lastEditor === currentUser.uid) return; // 내가 쓴 것은 무시
+    // 내가 쓴 것도 받아서 동기화 (lastEditor 체크 제거)
     if(window._fbCollabReceive) window._fbCollabReceive(toolId, payload.content);
   });
+  // 방 참여 시 기존 데이터 즉시 요청
+  try {
+    const snap = await get(dataRef);
+    if(snap.exists()){
+      const payload = snap.val();
+      if(window._fbCollabReceive) window._fbCollabReceive(toolId, payload.content);
+    }
+  } catch(e){}
   toast('👥 공동작업 방에 참여했어요! 방 코드: ' + roomId);
 };
 
