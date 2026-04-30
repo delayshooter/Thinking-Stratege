@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0066)file:///C:/Users/User/Downloads/bongam-thinking-strategies_12.html -->
+<!-- saved from url=(0066)file:///C:/Users/User/Downloads/bongam-thinking-strategies_13.html -->
 <html lang="ko"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1085,8 +1085,8 @@
 
   /* ══════════════ 즐겨찾기 ══════════════ */
   .fav-section{
-    max-width:900px;margin:0 auto 0;
-    padding:0 20px;
+    max-width:1200px;margin:0 auto 0;
+    padding:0 22px;
   }
   .fav-header{
     display:flex;align-items:center;gap:10px;
@@ -1126,11 +1126,13 @@
     font-size:11px;opacity:.5;margin-left:2px;
     background:none;border:none;cursor:pointer;
     color:inherit;padding:0;line-height:1;
+    font-family:'Jua',sans-serif;
   }
   .fav-chip:hover .fav-chip-remove{opacity:.8;}
   .fav-empty{
     font-size:13.5px;color:#aaa;padding:10px 0 16px;
     border-bottom:2px dashed #e0dbd0;margin-bottom:4px;
+    font-family:'Gowun Dodum','Noto Sans KR',sans-serif;
   }
 
   /* 타일 별표 버튼 */
@@ -1582,7 +1584,7 @@
   </div>
 </header>
 
-<div class="fav-section" id="favSection" style="display:none">
+<div class="fav-section" id="favSection" style="display: none;">
   <div class="fav-header">
     <span style="font-size:20px">⭐</span>
     <h2>즐겨찾는 도구</h2>
@@ -1643,7 +1645,7 @@
           </div>
         
           <div class="tile" onclick="openTool(&#39;qmatrix&#39;,&#39;0&#39;)">
-            <button class="fav-star " id="star-qmatrix" onclick="event.stopPropagation();toggleFav(&#39;qmatrix&#39;,&#39;질문 매트릭스&#39;,&#39;🤔&#39;,&#39;0&#39;)" title="즐겨찾기">
+            <button class="fav-star" id="star-qmatrix" onclick="event.stopPropagation();toggleFav(&#39;qmatrix&#39;,&#39;질문 매트릭스&#39;,&#39;🤔&#39;,&#39;0&#39;)" title="즐겨찾기">
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path class="star-fill star-stroke" d="M12 3 C12 3 13.5 7.5 15 9 C16.5 10.5 21 10.5 21 10.5 C21 10.5 17.5 13.5 16.5 15.5 C15.5 17.5 17 21.5 17 21.5 C17 21.5 12.8 19 12 18.5 C11.2 19 7 21.5 7 21.5 C7 21.5 8.5 17.5 7.5 15.5 C6.5 13.5 3 10.5 3 10.5 C3 10.5 7.5 10.5 9 9 C10.5 7.5 12 3 12 3Z" stroke-linejoin="round" stroke-linecap="round"></path>
               </svg>
@@ -2292,7 +2294,7 @@
       </div>
       <div class="admin-section">
         <label>⑥ 학교 로고 교체</label>
-        <img id="adm-logo-preview" class="admin-logo-preview" src="file:///C:/Users/User/Downloads/bongam-thinking-strategies_12.html" alt="현재 로고">
+        <img id="adm-logo-preview" class="admin-logo-preview" src="file:///C:/Users/User/Downloads/bongam-thinking-strategies_13.html" alt="현재 로고">
         <label class="admin-logo-btn" for="adm-logo-file">🖼 기기에서 이미지 선택</label>
         <input type="file" id="adm-logo-file" accept="image/*" style="display:none" onchange="previewAdminLogo(this)">
         <p style="font-size:12.5px;color:#888;margin-top:4px">PNG, JPG, SVG 모두 가능 · 투명 배경 PNG 권장</p>
