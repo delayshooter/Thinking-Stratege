@@ -3060,7 +3060,7 @@ function openCollabPanel(toolId){
       <div class="collab-bar">
         <span><span class="collab-dot"></span>공동작업 진행 중</span>
         <span class="collab-code">${state.roomId}</span>
-        <span class="collab-members">이 코드를 친구에게 알려주세요</span>
+        <span class="collab-members">이 숫자를 친구에게 알려주세요</span>
         <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4)"
           onclick="window.leaveCollabRoom&&window.leaveCollabRoom();openCollabPanel('${toolId}')">🚪 방 나가기</button>
       </div>`;
@@ -3070,8 +3070,8 @@ function openCollabPanel(toolId){
         <span>👥 공동작업</span>
         <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4)"
           onclick="startCollab('${toolId}')">🏠 방 만들기</button>
-        <input id="collabCodeInput" placeholder="방 코드 입력" maxlength="7" style="text-transform:uppercase"
-          oninput="this.value=this.value.toUpperCase()" />
+        <input id="collabCodeInput" placeholder="숫자 6자리 입력" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
         <button class="btn" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4)"
           onclick="joinCollab('${toolId}')">🚪 참여하기</button>
       </div>`;
@@ -3091,7 +3091,7 @@ async function startCollab(toolId){
 async function joinCollab(toolId){
   const inp = document.getElementById('collabCodeInput');
   const code = (inp ? inp.value.trim() : '').toUpperCase();
-  if(!code || code.length < 5){ toast('방 코드를 입력해 주세요! (예: AB-CD1)'); return; }
+  if(!code || code.length < 6){ toast('숫자 6자리를 입력해 주세요!'); return; }
   if(!window.joinCollabRoom){ toast('Firebase가 아직 로딩 중이에요.'); return; }
   await window.joinCollabRoom(code, toolId);
   openCollabPanel(toolId);
@@ -6873,8 +6873,7 @@ window.loadUserData = async () => {
 // ── 공동작업: 방 만들기 ──
 window.createCollabRoom = async (toolId) => {
   if(!currentUser) { toast('먼저 구글 계정으로 로그인해 주세요!'); return; }
-  const roomId = Math.random().toString(36).slice(2,5).toUpperCase() + '-' +
-                 Math.random().toString(36).slice(2,5).toUpperCase();
+  const roomId = String(Math.floor(100000 + Math.random() * 900000));
   collabRoomId = roomId;
   collabTool   = toolId;
   await set(ref(db, `rooms/${roomId}/meta`), {
