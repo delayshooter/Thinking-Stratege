@@ -1242,6 +1242,79 @@
     font-size:14px;line-height:1.8;color:#1a2238;
   }
 
+
+  /* ── 튜토리얼 화면 ── */
+  .tutorial-overlay{
+    display:none;position:fixed;inset:0;z-index:400;
+    background:var(--paper);overflow-y:auto;
+  }
+  .tutorial-overlay.on{display:block;}
+  .tutorial-header{
+    background:linear-gradient(135deg,#e85d4e,#c0392b);
+    color:#fff;padding:16px 20px;
+    display:flex;align-items:center;gap:12px;
+    position:sticky;top:0;z-index:10;
+  }
+  .tutorial-header h2{font-family:'Jua',sans-serif;font-size:20px;flex:1;}
+  .tutorial-close{
+    background:rgba(255,255,255,.2);border:none;color:#fff;
+    width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px;
+  }
+  .tutorial-body{max-width:760px;margin:0 auto;padding:20px 20px 80px;}
+  .tutorial-progress{
+    display:flex;align-items:center;gap:8px;margin-bottom:20px;
+  }
+  .tutorial-progress-bar{
+    flex:1;height:8px;background:#f0ede4;border-radius:999px;overflow:hidden;
+  }
+  .tutorial-progress-fill{
+    height:100%;background:linear-gradient(90deg,#e85d4e,#f4a731);
+    border-radius:999px;transition:width .3s ease;
+  }
+  .tutorial-step-label{font-size:13px;color:#888;white-space:nowrap;}
+  .tutorial-bubble{
+    background:#fff;border-radius:16px;padding:18px 20px;
+    border:2px solid #e85d4e;margin-bottom:16px;
+    position:relative;
+  }
+  .tutorial-bubble::before{
+    content:'🎮';position:absolute;top:-14px;left:16px;
+    background:#fff;padding:0 6px;font-size:20px;
+  }
+  .tutorial-bubble .guide-text{
+    font-size:15px;line-height:1.7;color:var(--ink);
+  }
+  .tutorial-bubble .guide-hint{
+    font-size:13px;color:#888;margin-top:8px;
+    background:#fafaf7;border-radius:8px;padding:8px 12px;
+  }
+  .tutorial-field-wrap{
+    background:#fff;border-radius:14px;border:2px solid #f0ede4;
+    padding:16px;margin-bottom:14px;
+  }
+  .tutorial-field-wrap.active{border-color:#e85d4e;box-shadow:0 0 0 3px rgba(232,93,78,.1);}
+  .tutorial-field-label{
+    font-family:'Jua',sans-serif;font-size:14px;color:#e85d4e;margin-bottom:8px;
+  }
+  .tutorial-nav{
+    display:flex;gap:10px;margin-top:20px;
+  }
+  .tutorial-nav button{flex:1;padding:14px;border-radius:12px;font-family:'Jua',sans-serif;font-size:15px;cursor:pointer;border:none;transition:all .15s;}
+  .btn-tut-next{background:#e85d4e;color:#fff;}
+  .btn-tut-next:hover{background:#c0392b;}
+  .btn-tut-prev{background:#f0ede4;color:#555;}
+  .tutorial-done-box{
+    background:#fff;border-radius:16px;padding:28px;text-align:center;
+    border:2px solid var(--bongam-green);margin-top:20px;
+  }
+  .tutorial-done-box .done-icon{font-size:56px;margin-bottom:12px;}
+  .tutorial-done-box h3{font-family:'Jua',sans-serif;font-size:22px;color:var(--bongam-green);margin-bottom:8px;}
+  .tutorial-done-box p{font-size:14px;color:#666;margin-bottom:20px;}
+  .tutorial-done-btns{display:flex;gap:10px;}
+  .btn-apply{flex:1;padding:14px;background:var(--bongam-green);color:#fff;border:none;border-radius:12px;font-family:'Jua',sans-serif;font-size:15px;cursor:pointer;}
+  .btn-apply:hover{background:var(--bongam-green-dark);}
+  .btn-finish{flex:1;padding:14px;background:#f0ede4;color:#555;border:none;border-radius:12px;font-family:'Jua',sans-serif;font-size:15px;cursor:pointer;}
+
   /* ══════════════ 포트폴리오 ══════════════ */
   .portfolio-btn{
     display:inline-flex;align-items:center;gap:6px;
@@ -1583,6 +1656,24 @@
 
 <!-- OVERLAY -->
 <!-- ══ 포트폴리오 오버레이 ══ -->
+<!-- ══ 튜토리얼 오버레이 ══ -->
+<div class="tutorial-overlay" id="tutorialOverlay">
+  <div class="tutorial-header">
+    <span style="font-size:22px">🎮</span>
+    <h2 id="tutorialTitle">연습하기</h2>
+    <button class="tutorial-close" onclick="closeTutorial()">✕</button>
+  </div>
+  <div class="tutorial-body">
+    <div class="tutorial-progress">
+      <div class="tutorial-progress-bar">
+        <div class="tutorial-progress-fill" id="tutorialProgressFill" style="width:0%"></div>
+      </div>
+      <div class="tutorial-step-label" id="tutorialStepLabel">1 / 1</div>
+    </div>
+    <div id="tutorialContent"></div>
+  </div>
+</div>
+
 <div class="portfolio-overlay" id="portfolioOverlay">
   <div class="portfolio-header">
     <span style="font-size:24px">📋</span>
@@ -3168,6 +3259,343 @@ function openTool(id, stageN){
   // 역할별 버튼 추가
   addRoleButtons(id);
 }
+
+
+// ══════════════════════════════════════════
+// 튜토리얼 시스템
+// ══════════════════════════════════════════
+
+let _tutState = {
+  toolId: '', subject: '', level: '', grade: 3,
+  steps: [], currentStep: 0, answers: {}
+};
+
+function openTutorial(toolId, subject, level, grade){
+  const script = TUTORIAL_SCRIPTS[toolId];
+  if(!script){ toast('이 도구는 아직 튜토리얼이 준비 중이에요!'); return; }
+
+  const topic = getTutorialTopic(toolId, grade, subject, level);
+
+  _tutState = {
+    toolId, subject, level, grade,
+    steps: script.steps,
+    currentStep: 0,
+    answers: {},
+    topic
+  };
+
+  const overlay = document.getElementById('tutorialOverlay');
+  document.getElementById('tutorialTitle').textContent =
+    `🎮 연습하기 — ${currentToolTitle} (${grade}학년 ${subject} ${level})`;
+  overlay.classList.add('on');
+  document.body.style.overflow = 'hidden';
+  history.pushState({tutorial:true}, '', '#tutorial');
+  renderTutorialStep();
+}
+
+function closeTutorial(){
+  document.getElementById('tutorialOverlay').classList.remove('on');
+  document.body.style.overflow = '';
+  if(location.hash === '#tutorial') history.back();
+}
+
+function renderTutorialStep(){
+  const {steps, currentStep, answers, topic, grade, subject, level} = _tutState;
+  const total = steps.length;
+  const pct   = Math.round((currentStep / total) * 100);
+
+  document.getElementById('tutorialProgressFill').style.width = pct + '%';
+  document.getElementById('tutorialStepLabel').textContent = `${currentStep + 1} / ${total}`;
+
+  if(currentStep >= total){
+    renderTutorialDone();
+    return;
+  }
+
+  const step = steps[currentStep];
+  const saved = answers[step.fieldId] || '';
+
+  const guideText = typeof step.guide === 'function'
+    ? step.guide({topic, grade, subject, level})
+    : step.guide.replace('{topic}', topic);
+
+  document.getElementById('tutorialContent').innerHTML = `
+    <div class="tutorial-bubble">
+      <div class="guide-text">${guideText}</div>
+      ${step.hint ? `<div class="guide-hint">💡 ${step.hint.replace('{topic}', topic)}</div>` : ''}
+    </div>
+    <div class="tutorial-field-wrap active">
+      <div class="tutorial-field-label">${step.label}</div>
+      ${step.type === 'textarea'
+        ? `<textarea id="tut-field" style="min-height:100px;width:100%" placeholder="${step.placeholder||''}">${saved}</textarea>`
+        : `<input type="text" id="tut-field" style="width:100%" placeholder="${step.placeholder||''}" value="${saved}" />`
+      }
+    </div>
+    <div class="tutorial-nav">
+      ${currentStep > 0 ? `<button class="btn-tut-prev" onclick="tutPrev()">← 이전</button>` : ''}
+      <button class="btn-tut-next" onclick="tutNext()" style="flex:2">
+        ${currentStep < total - 1 ? '다음으로 →' : '완성! 🎉'}
+      </button>
+    </div>
+  `;
+
+  // 포커스
+  setTimeout(()=>{ const f=document.getElementById('tut-field'); if(f) f.focus(); }, 100);
+}
+
+function tutNext(){
+  const field = document.getElementById('tut-field');
+  const step  = _tutState.steps[_tutState.currentStep];
+  if(field) _tutState.answers[step.fieldId] = field.value;
+  _tutState.currentStep++;
+  renderTutorialStep();
+}
+
+function tutPrev(){
+  const field = document.getElementById('tut-field');
+  const step  = _tutState.steps[_tutState.currentStep];
+  if(field) _tutState.answers[step.fieldId] = field.value;
+  if(_tutState.currentStep > 0) _tutState.currentStep--;
+  renderTutorialStep();
+}
+
+function renderTutorialDone(){
+  document.getElementById('tutorialProgressFill').style.width = '100%';
+  document.getElementById('tutorialStepLabel').textContent = '완성!';
+  document.getElementById('tutorialContent').innerHTML = `
+    <div class="tutorial-done-box">
+      <div class="done-icon">🎉</div>
+      <h3>잘했어요!</h3>
+      <p>연습을 마쳤어요. 입력한 내용을 도구에 적용할 수 있어요!</p>
+      <div class="tutorial-done-btns">
+        <button class="btn-apply" onclick="applyTutorialToTool()">✅ 도구에 적용하기</button>
+        <button class="btn-finish" onclick="closeTutorial()">⏹ 마무리하기</button>
+      </div>
+    </div>
+  `;
+}
+
+function applyTutorialToTool(){
+  const {answers, topic, toolId} = _tutState;
+  // 주제 입력
+  const topicEl = document.getElementById(toolId + '-topic')
+                || sheet.querySelector('.q-topic input')
+                || sheet.querySelector('[id$="-topic"]');
+  if(topicEl) topicEl.value = topic;
+
+  // 각 필드 적용
+  Object.entries(answers).forEach(([fieldId, value]) => {
+    const el = document.getElementById(fieldId);
+    if(el){
+      el.value = value;
+      el.dispatchEvent(new Event('input', {bubbles:true}));
+    }
+  });
+
+  // store 업데이트
+  const data = store[toolId] || {};
+  if(topicEl) data['topic'] = topic;
+  Object.entries(answers).forEach(([k,v]) => { data[k] = v; });
+  saveState(toolId, data);
+
+  closeTutorial();
+  toast('✅ 도구에 적용됐어요!');
+}
+
+// 튜토리얼 주제 조회
+function getTutorialTopic(toolId, grade, subject, level){
+  const d = (TUTORIAL_TOPICS[toolId]||{})[grade]?.[subject]?.[level]
+          || (TUTORIAL_TOPICS[toolId]||{})['all']?.[subject]?.[level]
+          || (TUTORIAL_TOPICS[toolId]||{})['all']?.['all']?.[level];
+  return d || '우리 주변의 이야기';
+}
+
+// popstate에서 튜토리얼도 닫기
+window.addEventListener('popstate', () => {
+  if(document.getElementById('tutorialOverlay').classList.contains('on')){
+    document.getElementById('tutorialOverlay').classList.remove('on');
+    document.body.style.overflow = '';
+  }
+});
+
+// ── renderPracticePanel에서 튜토리얼 연결 ──
+// selectSubject/selectLevel 대신 openTutorial 호출로 변경
+function selectSubject(el, subject, toolId, grade){
+  document.querySelectorAll('.subject-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  _practiceState = {..._practiceState, subject, toolId, grade};
+  if(_practiceState.level) openTutorial(toolId, _practiceState.subject, _practiceState.level, grade);
+}
+function selectLevel(el, level, toolId, grade){
+  document.querySelectorAll('.level-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  _practiceState = {..._practiceState, level, toolId, grade};
+  if(_practiceState.subject) openTutorial(toolId, _practiceState.subject, level, grade);
+}
+
+
+
+// ══════════════════════════════════════════
+// 튜토리얼 스크립트 (도구별 단계 안내)
+// ══════════════════════════════════════════
+const TUTORIAL_SCRIPTS = {};
+
+// ── 6하 원칙 질문 ──
+TUTORIAL_SCRIPTS['q6w'] = { steps: [
+  { fieldId:'q6w-who',   label:'👤 누가?',   type:'textarea', guide:'"{topic}"에서 <strong>누가</strong> 등장하나요? 주인공이나 주요 인물을 써봐요!', hint:'사람, 동물, 단체 모두 가능해요.' },
+  { fieldId:'q6w-when',  label:'⏰ 언제?',   type:'textarea', guide:'이 일은 <strong>언제</strong> 일어났나요? 시간, 계절, 시대를 떠올려봐요!', hint:'정확한 날짜가 아니어도 괜찮아요.' },
+  { fieldId:'q6w-where', label:'📍 어디서?', type:'textarea', guide:'<strong>어디서</strong> 일어난 일인가요? 장소나 공간을 써봐요!', hint:'나라, 도시, 특정 장소 모두 가능해요.' },
+  { fieldId:'q6w-what',  label:'📦 무엇을?', type:'textarea', guide:'<strong>무엇을</strong> 했나요? 주요 사건이나 행동을 써봐요!', hint:'가장 중요한 사건 하나를 골라봐요.' },
+  { fieldId:'q6w-how',   label:'🔧 어떻게?', type:'textarea', guide:'<strong>어떻게</strong> 그 일이 일어났나요? 방법이나 과정을 써봐요!', hint:'순서대로 쓰면 더 이해하기 쉬워요.' },
+  { fieldId:'q6w-why',   label:'❓ 왜?',    type:'textarea', guide:'<strong>왜</strong> 그런 일이 일어났을까요? 이유나 원인을 써봐요!', hint:'"왜"는 가장 깊은 질문이에요. 여러 이유를 생각해봐요.' },
+  { fieldId:'q6w-if',    label:'🌟 만약에?', type:'textarea', guide:'<strong>만약에</strong> 다르게 됐다면 어떨까요? 상상력을 발휘해봐요!', hint:'"만약에 ~라면" 형식으로 써봐요.' },
+  { fieldId:'q6w-i',     label:'🪞 나라면?', type:'textarea', guide:'<strong>나라면</strong> 어떻게 했을까요? 내 생각을 솔직하게 써봐요!', hint:'정답이 없어요. 내 생각을 자유롭게 표현해봐요.' }
+]};
+
+// ── 마인드맵 ──
+TUTORIAL_SCRIPTS['mindmap'] = { steps: [
+  { fieldId:'mm-center', label:'⭕ 중심 주제', type:'input',    guide:'마인드맵의 가운데에 들어갈 <strong>핵심 주제</strong>를 써봐요! "{topic}"과 관련된 핵심 단어 하나예요.', hint:'짧고 명확한 단어나 문장이 좋아요.' },
+  { fieldId:'mm-b1',     label:'🌿 가지 1',    type:'input',    guide:'중심 주제와 연결되는 <strong>첫 번째 생각</strong>을 써봐요!', hint:'떠오르는 것을 자유롭게 써봐요.' },
+  { fieldId:'mm-b2',     label:'🌿 가지 2',    type:'input',    guide:'<strong>두 번째 연결 생각</strong>을 써봐요!', hint:'첫 번째와 다른 방향으로 생각해봐요.' },
+  { fieldId:'mm-b3',     label:'🌿 가지 3',    type:'input',    guide:'<strong>세 번째 연결 생각</strong>을 써봐요!', hint:'점점 더 다양한 방향으로 확장해봐요.' },
+  { fieldId:'mm-b4',     label:'🌿 가지 4',    type:'input',    guide:'<strong>네 번째 연결 생각</strong>을 써봐요!', hint:'예상치 못한 연결도 좋아요!' },
+]};
+
+// ── See-Think-Wonder ──
+TUTORIAL_SCRIPTS['stw'] = { steps: [
+  { fieldId:'stw-s', label:'👀 See (보이는 것)',   type:'textarea', guide:'"{topic}"을 보거나 생각할 때 <strong>실제로 보이는 것</strong>을 써봐요! 사실만 객관적으로요.', hint:'판단이나 해석 없이, 눈에 보이는 것만 써봐요.' },
+  { fieldId:'stw-t', label:'💭 Think (생각되는 것)', type:'textarea', guide:'보이는 것을 바탕으로 <strong>어떤 생각이 드나요?</strong> 해석이나 의미를 써봐요!', hint:'"이것은 ~인 것 같다" 형식으로 써봐요.' },
+  { fieldId:'stw-w', label:'🌟 Wonder (궁금한 것)', type:'textarea', guide:'<strong>궁금한 점</strong>은 무엇인가요? 더 알고 싶은 것을 질문으로 써봐요!', hint:'"왜~?", "어떻게~?" 같은 질문을 만들어봐요.' }
+]};
+
+// ── Think-Puzzle-Explore ──
+TUTORIAL_SCRIPTS['tpe'] = { steps: [
+  { fieldId:'tpe-t', label:'💡 Think (알고 있는 것)',    type:'textarea', guide:'"{topic}"에 대해 <strong>이미 알고 있는 것</strong>은 무엇인가요?', hint:'확실하지 않아도 괜찮아요. 알고 있다고 생각하는 것을 써봐요.' },
+  { fieldId:'tpe-p', label:'🧩 Puzzle (궁금하고 복잡한 것)', type:'textarea', guide:'<strong>헷갈리거나 궁금한 점</strong>은 무엇인가요?', hint:'이해하기 어려운 부분, 더 알고 싶은 것을 써봐요.' },
+  { fieldId:'tpe-e', label:'🔍 Explore (탐구하고 싶은 것)',  type:'textarea', guide:'더 <strong>깊이 탐구하고 싶은 것</strong>은 무엇인가요?', hint:'어떻게 알아볼 수 있을지도 생각해봐요.' }
+]};
+
+// ── Connect·Extend·Challenge ──
+TUTORIAL_SCRIPTS['cec'] = { steps: [
+  { fieldId:'cec-c',  label:'🔗 Connect (연결)',   type:'textarea', guide:'"{topic}"이 내가 알고 있는 <strong>다른 것과 어떻게 연결</strong>되나요?', hint:'이전에 배운 것, 경험, 다른 과목과 연결해봐요.' },
+  { fieldId:'cec-e',  label:'➕ Extend (확장)',    type:'textarea', guide:'이 내용이 내 생각을 <strong>어떻게 넓혀줬나요?</strong>', hint:'새롭게 알게 된 것, 더 깊어진 생각을 써봐요.' },
+  { fieldId:'cec-ch', label:'❓ Challenge (도전)',  type:'textarea', guide:'<strong>이해하기 어렵거나 동의하기 어려운 점</strong>은 무엇인가요?', hint:'비판적으로 생각해봐요. 왜 그렇게 생각하는지도 써봐요.' }
+]};
+
+// ── Color·Symbol·Image ──
+TUTORIAL_SCRIPTS['csi'] = { steps: [
+  { fieldId:'csi-c-reason', label:'🎨 Color (색깔)',   type:'textarea', guide:'"{topic}"을 색깔로 표현한다면? 어떤 <strong>색깔</strong>이 어울릴까요? 그 이유도 써봐요!', hint:'색이 주는 느낌과 연결해봐요. (예: 빨강=열정, 파랑=평화)' },
+  { fieldId:'csi-s',        label:'🔷 Symbol (상징)',  type:'textarea', guide:'"{topic}"을 <strong>상징하는 도형이나 기호</strong>는 무엇일까요? 그 이유도 써봐요!', hint:'단순한 기호나 도형으로 표현해봐요.' },
+  { fieldId:'csi-i',        label:'🖼 Image (이미지)',  type:'textarea', guide:'"{topic}"을 표현하는 <strong>이미지나 그림</strong>을 떠올려봐요! 어떤 장면이 떠오르나요?', hint:'구체적인 장면이나 그림을 말로 묘사해봐요.' }
+]};
+
+// ── Compass Points ──
+TUTORIAL_SCRIPTS['compass'] = { steps: [
+  { fieldId:'cp-n', label:'N · 더 알고 싶은 것',  type:'textarea', guide:'"{topic}"에 대해 <strong>더 알고 싶은 것</strong>이 있나요? (Need to know)', hint:'궁금한 점, 필요한 정보를 질문으로 써봐요.' },
+  { fieldId:'cp-e', label:'E · 흥미로운 것',      type:'textarea', guide:'"{topic}"에서 <strong>흥미롭거나 신나는 점</strong>은 무엇인가요? (Exciting)', hint:'기대되거나 재미있는 부분을 써봐요.' },
+  { fieldId:'cp-w', label:'W · 걱정되는 것',      type:'textarea', guide:'"{topic}"에서 <strong>걱정되거나 우려되는 점</strong>은 무엇인가요? (Worrisome)', hint:'문제점이나 위험한 부분을 써봐요.' },
+  { fieldId:'cp-s', label:'S · 입장·제안',        type:'textarea', guide:'"{topic}"에 대한 <strong>나의 입장이나 제안</strong>은 무엇인가요? (Stance/Suggestion)', hint:'"나는 ~라고 생각한다" 형식으로 써봐요.' }
+]};
+
+// ── 사실·이유·적용·평가 ──
+TUTORIAL_SCRIPTS['qsort'] = { steps: [
+  { fieldId:'qs-fact',   label:'📋 사실',  type:'textarea', guide:'"{topic}"에 대해 <strong>객관적인 사실</strong>을 써봐요! 누구나 동의할 수 있는 내용이에요.', hint:'의견이 아닌, 확인할 수 있는 사실을 써봐요.' },
+  { fieldId:'qs-reason', label:'💡 이유',  type:'textarea', guide:'그 사실의 <strong>이유나 원인</strong>은 무엇인가요? 왜 그런지 설명해봐요!', hint:'"왜냐하면~" 형식으로 써봐요.' },
+  { fieldId:'qs-apply',  label:'🔧 적용',  type:'textarea', guide:'이 내용을 <strong>실제 생활에 어떻게 적용</strong>할 수 있을까요?', hint:'구체적인 예시를 들어봐요.' },
+  { fieldId:'qs-eval',   label:'⭐ 평가',  type:'textarea', guide:'이 내용을 <strong>어떻게 평가</strong>하나요? 좋은 점, 아쉬운 점을 써봐요!', hint:'긍정적인 면과 부정적인 면을 균형있게 써봐요.' }
+]};
+
+// ── 질문 매트릭스 ──
+TUTORIAL_SCRIPTS['qmatrix'] = { steps: [
+  { fieldId:'qm-lv1', label:'1단계 질문 (사실)',     type:'textarea', guide:'"{topic}"에 대한 <strong>기본적인 사실 질문</strong>을 써봐요! (누가/언제/어디서/무엇을)', hint:'답이 하나로 정해진 질문이에요.' },
+  { fieldId:'qm-lv2', label:'2단계 질문 (과정)',     type:'textarea', guide:'<strong>어떻게/왜</strong>를 사용해서 과정이나 이유를 묻는 질문을 써봐요!', hint:'조금 더 깊이 생각해야 하는 질문이에요.' },
+  { fieldId:'qm-lv3', label:'3단계 질문 (예측)',     type:'textarea', guide:'<strong>앞으로 어떻게 될지</strong> 예측하는 질문을 써봐요!', hint:'"~라면 어떻게 될까?" 형식이 좋아요.' },
+  { fieldId:'qm-lv4', label:'4단계 질문 (가치·창의)', type:'textarea', guide:'<strong>가치나 의미</strong>를 탐구하는 깊은 질문을 써봐요!', hint:'정답이 없는, 여러 관점이 있는 질문이에요.' }
+]};
+
+// ── Claim·Support·Question ──
+TUTORIAL_SCRIPTS['csq'] = { steps: [
+  { fieldId:'csq-claim',    label:'📣 Claim (주장)',    type:'textarea', guide:'"{topic}"에 대한 <strong>나의 주장</strong>을 써봐요! "나는 ~라고 생각한다"', hint:'명확하고 구체적인 주장을 써봐요.' },
+  { fieldId:'csq-support',  label:'📚 Support (근거)',  type:'textarea', guide:'그 주장을 뒷받침하는 <strong>근거나 증거</strong>를 써봐요!', hint:'사실, 자료, 예시 등을 활용해봐요.' },
+  { fieldId:'csq-question', label:'❓ Question (질문)', type:'textarea', guide:'아직 <strong>확실하지 않거나 더 생각해볼 점</strong>을 질문으로 써봐요!', hint:'"하지만 ~은 어떨까?" 형식으로 써봐요.' }
+]};
+
+// ── KWL 차트 ──
+TUTORIAL_SCRIPTS['kwl'] = { steps: [
+  { fieldId:'kwl-know',    label:'K · 알고 있는 것',    type:'textarea', guide:'"{topic}"에 대해 <strong>이미 알고 있는 것</strong>을 써봐요!', hint:'틀려도 괜찮아요. 지금 알고 있다고 생각하는 것을 써봐요.' },
+  { fieldId:'kwl-want',    label:'W · 알고 싶은 것',    type:'textarea', guide:'"{topic}"에 대해 <strong>더 알고 싶은 것</strong>을 질문으로 써봐요!', hint:'"~이 궁금하다", "~을 알고 싶다" 형식으로요.' },
+  { fieldId:'kwl-learned', label:'L · 배운 것',          type:'textarea', guide:'탐구 후 <strong>새롭게 배운 것</strong>을 써봐요!', hint:'W에서 쓴 질문에 답이 됐는지 확인해봐요.' }
+]};
+
+// ══════════════════════════════════════════
+// 학년/과목/레벨별 연습 주제
+// ══════════════════════════════════════════
+const TUTORIAL_TOPICS = {};
+
+// ── 6하 원칙 질문 주제 ──
+TUTORIAL_TOPICS['q6w'] = {
+  1: {
+    '국어': { '하':'콩쥐팥쥐 이야기', '중':'해와 달이 된 오누이', '상':'심청전' },
+    '사회': { '하':'우리 동네 소개', '중':'우리 마을의 변화', '상':'지역 사회의 문제' },
+    '도덕': { '하':'친구와 사이좋게 지내기', '중':'정직한 행동이란?', '상':'규칙을 지켜야 하는 이유' },
+    '수학': { '하':'덧셈과 뺄셈 이야기', '중':'길이 재기 활동', '상':'곱셈이 필요한 상황' },
+    '과학': { '하':'봄에 볼 수 있는 동물', '중':'식물이 자라는 과정', '상':'날씨가 변하는 이유' }
+  },
+  2: {
+    '국어': { '하':'이상한 나라의 앨리스', '중':'피노키오 이야기', '상':'어린 왕자' },
+    '사회': { '하':'우리 고장의 모습', '중':'옛날과 오늘날의 생활', '상':'고장의 문화유산' },
+    '도덕': { '하':'배려하는 마음', '중':'차별 없는 세상', '상':'공정한 사회란?' },
+    '수학': { '하':'받아올림 있는 덧셈', '중':'표와 그래프 읽기', '상':'곱셈구구 활용' },
+    '과학': { '하':'자석의 성질', '중':'동물의 한살이', '상':'물의 상태 변화' }
+  },
+  3: {
+    '국어': { '하':'토끼와 거북이', '중':'흥부와 놀부', '상':'내가 읽은 책' },
+    '사회': { '하':'우리 고장의 지리', '중':'교통과 통신의 변화', '상':'지역 사회 문제 해결' },
+    '도덕': { '하':'약속과 신뢰', '중':'생명을 소중히 여기기', '상':'공익을 위한 행동' },
+    '수학': { '하':'나눗셈의 이해', '중':'분수와 소수', '상':'들이와 무게' },
+    '과학': { '하':'동물의 생활', '중':'식물의 한살이', '상':'지표의 변화' }
+  },
+  4: {
+    '국어': { '하':'신데렐라 이야기', '중':'15소년 표류기', '상':'탐정 이야기' },
+    '사회': { '하':'촌락과 도시의 생활', '중':'경제 활동과 무역', '상':'사회 변화와 문화' },
+    '도덕': { '하':'정의란 무엇인가', '중':'통일을 위한 노력', '상':'지구촌 문제와 해결' },
+    '수학': { '하':'곱셈과 나눗셈', '중':'평면도형의 이동', '상':'막대 그래프와 꺾은선 그래프' },
+    '과학': { '하':'식물의 구조', '중':'물의 여행', '상':'지구와 달의 운동' }
+  },
+  5: {
+    '국어': { '하':'로빈슨 크루소', '중':'돈키호테', '상':'레미제라블' },
+    '사회': { '하':'우리나라의 역사', '중':'세계 여러 나라', '상':'지구촌의 문제' },
+    '도덕': { '하':'인권 존중', '중':'민주주의 가치', '상':'평화로운 세계' },
+    '수학': { '하':'약수와 배수', '중':'분수의 사칙연산', '상':'합동과 대칭' },
+    '과학': { '하':'태양계와 별', '중':'산과 염기', '상':'생물과 환경' }
+  },
+  6: {
+    '국어': { '하':'올리버 트위스트', '중':'파브르 곤충기', '상':'어린이 경제학' },
+    '사회': { '하':'조선시대 생활', '중':'일제강점기와 독립운동', '상':'현대 민주주의 발전' },
+    '도덕': { '하':'세계 시민의 역할', '중':'지속가능한 발전', '상':'미래 사회의 윤리' },
+    '수학': { '하':'비와 비율', '중':'원의 넓이', '상':'경우의 수' },
+    '과학': { '하':'빛과 렌즈', '중':'연소와 소화', '상':'에너지와 생활' }
+  }
+};
+
+// ── 마인드맵 주제 ──
+TUTORIAL_TOPICS['mindmap'] = {
+  1: { '국어':{'하':'가족','중':'학교생활','상':'내가 좋아하는 것'}, '사회':{'하':'우리 동네','중':'우리 고장','상':'우리 지역'}, '도덕':{'하':'친구','중':'도움','상':'배려'}, '수학':{'하':'도형','중':'숫자','상':'측정'}, '과학':{'하':'동물','중':'식물','상':'날씨'} },
+  2: { '국어':{'하':'계절','중':'동화책','상':'감정'}, '사회':{'하':'마을 시설','중':'직업','상':'옛날과 오늘날'}, '도덕':{'하':'예절','중':'정직','상':'책임'}, '수학':{'하':'덧뺄셈','중':'길이','상':'시각'}, '과학':{'하':'자석','중':'동물의 한살이','상':'물'} },
+  3: { '국어':{'하':'봄','중':'내가 좋아하는 인물','상':'나의 꿈과 미래'}, '사회':{'하':'우리 고장','중':'교통수단','상':'환경 문제'}, '도덕':{'하':'생명','중':'약속','상':'공정'}, '수학':{'하':'나눗셈','중':'분수','상':'도형'}, '과학':{'하':'동물','중':'태양계','상':'기후 변화'} },
+  4: { '국어':{'하':'방학','중':'독서','상':'미래 직업'}, '사회':{'하':'도시와 촌락','중':'경제','상':'문화'}, '도덕':{'하':'정의','중':'통일','상':'지구촌'}, '수학':{'하':'곱셈','중':'도형','상':'그래프'}, '과학':{'하':'식물','중':'물','상':'지구'} },
+  5: { '국어':{'하':'여행','중':'환경','상':'인물 분석'}, '사회':{'하':'역사','중':'세계','상':'사회 문제'}, '도덕':{'하':'인권','중':'민주주의','상':'평화'}, '수학':{'하':'분수','중':'입체도형','상':'비율'}, '과학':{'하':'태양계','중':'산과 염기','상':'생태계'} },
+  6: { '국어':{'하':'독립운동','중':'과학 발명','상':'미래 사회'}, '사회':{'하':'조선시대','중':'독립운동','상':'민주주의 발전'}, '도덕':{'하':'세계 시민','중':'지속가능성','상':'미래 윤리'}, '수학':{'하':'비율','중':'원','상':'확률'}, '과학':{'하':'빛','중':'연소','상':'에너지'} }
+};
+
+// 나머지 8개 도구는 마인드맵과 동일한 주제 재활용
+['stw','tpe','cec','csi','compass','qsort','qmatrix','csq','kwl'].forEach(id => {
+  TUTORIAL_TOPICS[id] = TUTORIAL_TOPICS['mindmap'];
+});
+// q6w 주제를 일부 도구에 적용
+['qmatrix','csq','qsort'].forEach(id => {
+  TUTORIAL_TOPICS[id] = TUTORIAL_TOPICS['q6w'];
+});
 
 // ══════════════════════════════════════════
 // 연습 데이터
