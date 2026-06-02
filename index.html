@@ -3425,13 +3425,22 @@ function selectSubject(el, subject, toolId, grade){
   document.querySelectorAll('.subject-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
   _practiceState = {..._practiceState, subject, toolId, grade};
-  if(_practiceState.level) openTutorial(toolId, _practiceState.subject, _practiceState.level, grade);
+  updateTutorialStartBtn(toolId, grade);
 }
 function selectLevel(el, level, toolId, grade){
   document.querySelectorAll('.level-chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
   _practiceState = {..._practiceState, level, toolId, grade};
-  if(_practiceState.subject) openTutorial(toolId, _practiceState.subject, level, grade);
+  updateTutorialStartBtn(toolId, grade);
+}
+function updateTutorialStartBtn(toolId, grade){
+  const btn = document.getElementById('btnStartTutorial');
+  if(!btn) return;
+  const {subject, level} = _practiceState;
+  if(subject && level){
+    btn.style.display = 'block';
+    btn.textContent = `🎮 ${subject} ${level} 레벨 튜토리얼 시작!`;
+  }
 }
 
 
@@ -3795,7 +3804,17 @@ function renderPracticePanel(toolId, panel){
         <button class="level-chip lv-high" onclick="selectLevel(this,'상','${toolId}',${grade})">🌳 상</button>
       </div>
       <div id="practiceContent"></div>
+      <button id="btnStartTutorial" onclick="startTutorialFromPanel('${toolId}',${grade})"
+        style="display:none;margin-top:12px;width:100%;padding:14px;background:#e85d4e;color:#fff;border:none;border-radius:12px;font-family:'Jua',sans-serif;font-size:16px;cursor:pointer;">
+        🎮 튜토리얼 시작하기!
+      </button>
     </div>`;
+}
+
+function startTutorialFromPanel(toolId, grade){
+  const {subject, level} = _practiceState;
+  if(!subject || !level){ toast('과목과 레벨을 모두 선택해주세요!'); return; }
+  openTutorial(toolId, subject, level, grade);
 }
 
 let _practiceState = {subject:'', level:'', toolId:'', grade:3};
