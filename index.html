@@ -2154,35 +2154,36 @@ async function getUserRole(){
   if(!user) return 'guest';
   if(window._accountCache) return window._accountCache;
 
-  // Firebase 모듈 로딩 대기 (최대 3초)
+  // Firebase 모듈 안의 직접 함수 우선 사용
+  if(window.getUserRoleDirect){
+    const role = await window.getUserRoleDirect(user.email);
+    window._accountCache = role;
+    return role;
+  }
+
+  // fallback: window.dbGet 대기
   let waited = 0;
-  while((!window.dbGet || !window.dbRef || !window.getDatabase) && waited < 3000){
+  while(!window.dbGet && waited < 3000){
     await new Promise(r => setTimeout(r, 200));
     waited += 200;
   }
+  if(!window.dbGet) return 'guest';
 
   try {
-    if(!window.dbGet || !window.dbRef || !window.getDatabase) return 'guest';
     const email = user.email.toLowerCase();
-    // 이메일 키 변환: . → _ , @ → __at__
     const key = email.replace(/\./g, '_').replace(/@/, '__at__');
-    const db  = window.getDatabase();
-
+    const dbInst = window.getDatabase();
     console.log('getUserRole checking key:', key);
-
     const [sSnap, tSnap] = await Promise.all([
-      window.dbGet(window.dbRef(db, `accounts/students/${key}`)),
-      window.dbGet(window.dbRef(db, `accounts/teachers/${key}`)),
+      window.dbGet(window.dbRef(dbInst, `accounts/students/${key}`)),
+      window.dbGet(window.dbRef(dbInst, `accounts/teachers/${key}`)),
     ]);
-
     let role = 'guest';
     if(tSnap.exists()) role = 'teacher';
     else if(sSnap.exists()) role = 'student';
-
     console.log('getUserRole result:', role, 'for key:', key);
-
     window._accountCache = role;
-    window._accountData  = (sSnap.exists() ? sSnap.val() : null) || (tSnap.exists() ? tSnap.val() : null);
+    window._accountData = (sSnap.exists() ? sSnap.val() : null) || (tSnap.exists() ? tSnap.val() : null);
     return role;
   } catch(e){
     console.warn('getUserRole error:', e);
@@ -7829,6 +7830,26 @@ const db   = getDatabase(app);
 window.getDatabase = getDatabase;
 window.dbRef = ref;
 window.dbGet = get;
+
+// ── Firebase 모듈 안에서 직접 역할 조회 (타이밍 문제 해결) ──
+window.getUserRoleDirect = async (email) => {
+  try {
+    const key = email.toLowerCase().replace(/\./g, '_').replace(/@/, '__at__');
+    const [sSnap, tSnap] = await Promise.all([
+      get(ref(db, `accounts/students/${key}`)),
+      get(ref(db, `accounts/teachers/${key}`)),
+    ]);
+    let role = 'guest';
+    if(tSnap.exists()) role = 'teacher';
+    else if(sSnap.exists()) role = 'student';
+    window._accountData = (sSnap.exists() ? sSnap.val() : null) || (tSnap.exists() ? tSnap.val() : null);
+    console.log('getUserRoleDirect:', role, 'key:', key);
+    return role;
+  } catch(e) {
+    console.warn('getUserRoleDirect error:', e);
+    return 'guest';
+  }
+};
 const provider = new GoogleAuthProvider();
 
 // ── 전역 상태 ──
