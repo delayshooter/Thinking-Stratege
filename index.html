@@ -2090,7 +2090,7 @@ async function uploadAccountFile(input){
         const num   = String(row[4]||'').trim();
         if(name && email && email.includes('@') && grade){
           // 예시 데이터 필터링
-          if(email.includes('knk171215') || email.includes('lhu171108') || email.includes('pss171220')) return;
+          if(email.includes('knk171215@example') || email.includes('lhu171108@example') || email.includes('pss171220@example')) return;
           students.push({name, email, grade, class:cls, num, role:'student'});
         }
       });
@@ -2102,7 +2102,7 @@ async function uploadAccountFile(input){
         const name  = String(row[0]||'').trim();
         const email = String(row[1]||'').trim().toLowerCase();
         if(name && email && email.includes('@')){
-          if(email.includes('teacher@') || email.includes('kim@')) return;
+          if(email.includes('teacher@example') || email.includes('kim@example')) return;
           teachers.push({name, email, role:'teacher'});
         }
       });
